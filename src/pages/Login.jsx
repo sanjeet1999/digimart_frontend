@@ -1,81 +1,97 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 
-export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
 
-  const handleSubmit = async (e) => {
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Logging in with:', { email, password });
-
-    try {
-      const resp = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ loginEMail: email, Password: password })
-      });
-
-      const loginData = await resp.json();
-
-      if (!resp.ok) {
-        const errorMessage = loginData.message || "Login failed";
-        console.error("Error during login:", errorMessage);
-        return;
-      }
-
-      if (loginData.success) {
-        console.log("Success:", loginData.message);
-        // Add logic to redirect or store token here later
-      }
-
-      console.log("Login response:", loginData);
-    } catch (err) {
-      console.error("Network or server error:", err);
-    }
+    alert('Login functionality would be implemented here!');
+    console.log('Login attempt:', formData);
   };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Header />
-      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      
+      <main className="flex-1 bg-gray-50 flex items-center justify-center py-16">
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-          <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Login to Your Account</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-cyan-700 mb-2">Welcome Back</h1>
+            <p className="text-gray-600">Sign in to your account</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-gray-700">Email</label>
+              <label className="block text-gray-700 font-medium mb-2">Email</label>
               <input
                 type="email"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                placeholder="your.email@example.com"
               />
             </div>
+
             <div>
-              <label className="block text-gray-700">Password</label>
+              <label className="block text-gray-700 font-medium mb-2">Password</label>
               <input
                 type="password"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                placeholder="Enter your password"
               />
             </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center">
+                <input type="checkbox" className="mr-2" />
+                <span className="text-sm text-gray-600">Remember me</span>
+              </label>
+              <a href="#" className="text-sm text-cyan-700 hover:text-cyan-800">
+                Forgot password?
+              </a>
+            </div>
+
             <button
               type="submit"
-              className="w-full text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300"
-              style={{ backgroundColor: '#3B82F6' }} // Tailwind blue-500
+              className="w-full bg-cyan-700 text-white py-2 px-4 rounded-lg hover:bg-cyan-800 transition font-medium"
             >
-              Login
+              Sign In
             </button>
           </form>
-          <p className="mt-4 text-center text-gray-600">
-            Don't have an account? <Link to="/signup" className="text-blue-500 hover:underline">Sign up</Link>
-          </p>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-600">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-cyan-700 hover:text-cyan-800 font-medium">
+                Sign up here
+              </Link>
+            </p>
+          </div>
         </div>
-      </div>
-    </>
+      </main>
+      
+      <Footer />
+    </div>
   );
-}
+};
+
+export default Login; 

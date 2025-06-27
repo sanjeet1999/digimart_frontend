@@ -2,53 +2,93 @@ import React from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-export default function About() {
+const About = () => {
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Header />
+      
+      <main className="flex-1 bg-gray-50">
+        <section className="py-16">
+          <div className="container mx-auto px-8">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold text-cyan-700 mb-6">About DigiMart</h1>
+              <p className="text-xl text-gray-700 max-w-3xl mx-auto">
+                DigiMart is the premier digital marketplace connecting creators and customers worldwide. 
+                We specialize in digital goods including software, digital artwork, e-books, YouTube courses, 
+                and other premium digital products.
+              </p>
+            </div>
 
-      <div className="max-h-screen py-12 px-6 sm:px-12">
-        <main className="container mx-auto px-6 py-12">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800 mb-6">Our Mission</h2>
+                <p className="text-gray-600 mb-4">
+                  To empower digital creators by providing them with a trusted platform to monetize their 
+                  talents while giving buyers access to high-quality digital products from around the world.
+                </p>
+                <p className="text-gray-600">
+                  We believe in democratizing the digital economy, making it easy for anyone to buy or sell 
+                  digital goods - from indie software developers to digital artists, from course creators to e-book authors.
+                </p>
+              </div>
+              
+              <div className="bg-white p-8 rounded-lg shadow-md">
+                <h3 className="text-2xl font-bold text-cyan-700 mb-4">What We Offer</h3>
+                <ul className="space-y-3">
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full mr-3"></span>
+                    Software & Applications marketplace
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full mr-3"></span>
+                    Digital artwork & design assets
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full mr-3"></span>
+                    E-books & digital publications
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full mr-3"></span>
+                    YouTube courses & tutorials
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full mr-3"></span>
+                    Secure payment processing
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full mr-3"></span>
+                    Global creator community
+                  </li>
+                </ul>
+              </div>
+            </div>
 
-          <div className="max-w-6xl mx-auto">
-          <h1 className="text-4xl font-bold text-center text-indigo-700 mb-8">
-            Welcome to Digimart
-          </h1>
-
-          <p className="text-lg text-gray-700 mb-6">
-            Digimart is a modern online marketplace designed exclusively for digital services. Whether you're a creator looking to sell your skills or someone in need of high-quality digital work, Digimart connects you with the right people — fast, simple, and secure.
-          </p>
-
-          <section className="mb-10">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-3">For Sellers</h2>
-            <p className="text-gray-700">
-              Turn your expertise into income. From graphic design and content writing to web development and social media marketing, showcase your services and reach clients worldwide. It's easy to create listings, manage orders, and grow your freelance business.
-            </p>
-          </section>
-
-          <section className="mb-10">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-3">For Buyers</h2>
-            <p className="text-gray-700">
-              Need a logo? A blog post? A custom app? Whatever your digital need, find skilled freelancers ready to deliver quality results on time. Browse services, compare prices, and hire confidently — all in one place.
-            </p>
-          </section>
-
-          <section className="mb-10">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-3">Our Mission</h2>
-            <p className="text-gray-700">
-              At Digimart, our mission is to empower talent and opportunity by making digital service exchange accessible, efficient, and trustworthy for everyone — no matter where they are in the world.
-            </p>
-          </section>
-
-          <div className="text-center mt-8">
-            <p className="text-gray-600 italic">
-              Join Digimart today — where creativity meets opportunity.
-            </p>
+            {/* Statistics Section */}
+            <div className="grid md:grid-cols-4 gap-8 mt-16">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-cyan-700 mb-2">10K+</div>
+                <p className="text-gray-600">Digital Products</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-cyan-700 mb-2">5K+</div>
+                <p className="text-gray-600">Active Sellers</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-cyan-700 mb-2">50K+</div>
+                <p className="text-gray-600">Happy Customers</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-cyan-700 mb-2">100+</div>
+                <p className="text-gray-600">Countries Served</p>
+              </div>
+            </div>
           </div>
-        </div>
-        </main>
-      </div>
+        </section>
+      </main>
+      
       <Footer />
-    </>
+    </div>
   );
-}
+};
+
+export default About; 
