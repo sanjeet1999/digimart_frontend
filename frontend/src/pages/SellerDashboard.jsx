@@ -1,51 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import apiService from '../services/api';
+import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 m-4">
+          <h3 className="text-red-800 font-semibold mb-2">Something went wrong</h3>
+          <p className="text-red-600 text-sm">{this.state.error?.message}</p>
+          <button 
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const SellerDashboard = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('products');
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [newProduct, setNewProduct] = useState({
     title: '',
     category: 'software',
     price: '',
     description: '',
+    quantity: 1,
     file: null
   });
 
-  // Sample seller's products
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      title: "React UI Component Library",
-      category: "software",
-      price: 49.99,
-      status: "active",
-      downloads: 1250,
-      revenue: 61250,
-      dateAdded: "2024-01-15"
-    },
-    {
-      id: 2,
-      title: "Photoshop Action Bundle",
-      category: "software",
-      price: 39.99,
-      status: "active",
-      downloads: 670,
-      revenue: 26793,
-      dateAdded: "2024-02-20"
-    },
-    {
-      id: 3,
-      title: "Business Plan Template",
-      category: "ebooks",
-      price: 15.99,
-      status: "pending",
-      downloads: 0,
-      revenue: 0,
-      dateAdded: "2024-03-10"
-    }
-  ]);
+  // Products loaded from backend
+  const [products, setProducts] = useState([]);
 
   // Sample buyer data
   const buyers = [
@@ -98,10 +107,57 @@ const SellerDashboard = () => {
 
   const categories = [
     { value: 'software', label: 'Software & Apps' },
-    { value: 'art', label: 'Digital Art' },
-    { value: 'ebooks', label: 'E-Books' },
-    { value: 'courses', label: 'Online Courses' }
+    { value: 'digital art', label: 'Digital Art' },
+    { value: 'ebook', label: 'E-Books' },
+    { value: 'online courses', label: 'Online Courses' },
+    { value: 'music', label: 'Music' }
   ];
+
+  // Load products when user is available
+  useEffect(() => {
+    if (user?._id) {
+      loadProducts();
+    }
+  }, [user]);
+
+  const loadProducts = async () => {
+    if (!user?._id) {
+      console.error('No user ID available');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('Loading products for seller:', user._id);
+      const result = await apiService.getProductsBySeller(user._id);
+      
+      if (result.success) {
+        const products = result.data.data.products || [];
+        console.log('Products loaded successfully:', products);
+        console.log('First product structure:', products[0]);
+        
+        // Validate each product before setting state
+        const validatedProducts = products.map(product => ({
+          ...product,
+          prodName: product.prodName || 'Untitled Product',
+          price: typeof product.price === 'number' ? product.price : 0,
+          ProdQuantity: product.ProdQuantity || 0,
+          ProdDiscription: product.ProdDiscription || 'No description available',
+          Prodcategory: product.Prodcategory || 'software'
+        }));
+        
+        setProducts(validatedProducts);
+      } else {
+        console.error('Failed to load products:', result.error);
+        toast.error(result.error || 'Failed to load products');
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -118,21 +174,113 @@ const SellerDashboard = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const productToAdd = {
-      id: products.length + 1,
-      title: newProduct.title,
-      category: newProduct.category,
-      price: parseFloat(newProduct.price),
-      status: "pending",
-      downloads: 0,
-      revenue: 0,
-      dateAdded: new Date().toISOString().split('T')[0]
-    };
-    setProducts([...products, productToAdd]);
-    setNewProduct({ title: '', category: 'software', price: '', description: '', file: null });
-    setShowAddForm(false);
+    
+    // Validation
+    if (!newProduct.title.trim()) {
+      toast.error('Product title is required');
+      return;
+    }
+    
+    if (!newProduct.description.trim()) {
+      toast.error('Product description is required');
+      return;
+    }
+    
+    if (!newProduct.price || parseFloat(newProduct.price) <= 0) {
+      toast.error('Valid price is required');
+      return;
+    }
+    
+    if (!newProduct.file) {
+      toast.error('Product image is required');
+      return;
+    }
+    
+    if (!user?._id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Append all product data
+      formData.append('prodName', newProduct.title.trim());
+      formData.append('ProdDiscription', newProduct.description.trim());
+      formData.append('ProdQuantity', parseInt(newProduct.quantity) || 1);
+      formData.append('price', parseFloat(newProduct.price));
+      formData.append('sellerId', user._id);
+      formData.append('Prodcategory', newProduct.category);
+      
+      // Append the file with the correct field name expected by backend
+      formData.append('productImage', newProduct.file);
+
+      console.log('Sending product data to backend...');
+      console.log('FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      const result = await apiService.addProduct(formData);
+
+      if (result.success) {
+        toast.success('Product added successfully with image uploaded to Google Drive!');
+        console.log('Product created:', result.data);
+        
+        // Reset form
+        setNewProduct({ 
+          title: '', 
+          category: 'software', 
+          price: '', 
+          description: '', 
+          quantity: 1,
+          file: null 
+        });
+        
+        // Clear file input
+        const fileInput = document.getElementById('file-upload');
+        if (fileInput) {
+          fileInput.value = '';
+        }
+        
+        setActiveTab('products');
+        // Reload products list
+        loadProducts();
+      } else {
+        console.error('Product creation failed:', result.error);
+        toast.error(result.error || 'Failed to add product');
+      }
+    } catch (error) {
+      console.error('Error adding product:', error);
+      toast.error('An error occurred while adding the product');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) {
+      return;
+    }
+
+    try {
+      const result = await apiService.deleteProduct(productId);
+      
+      if (result.success) {
+        toast.success('Product deleted successfully!');
+        // Remove product from local state
+        setProducts(products.filter(p => p._id !== productId));
+      } else {
+        toast.error(result.error || 'Failed to delete product');
+      }
+    } catch (error) {
+      toast.error('An error occurred while deleting the product');
+    }
   };
 
   return (
@@ -146,6 +294,39 @@ const SellerDashboard = () => {
             <div className="mb-6 sm:mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-cyan-700 mb-3 sm:mb-4">Seller Dashboard</h1>
               <p className="text-gray-600 text-sm sm:text-base">Control your digital marketplace and monitor your earnings</p>
+            </div>
+
+            {/* Stats Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 sm:mb-8">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="flex items-center">
+                  <div className="text-3xl mr-4">📦</div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Total Products</h3>
+                    <p className="text-2xl font-bold text-cyan-700">{Array.isArray(products) ? products.length : 0}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="flex items-center">
+                  <div className="text-3xl mr-4">💰</div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Total Revenue</h3>
+                    <p className="text-2xl font-bold text-green-600">₹{(buyers.length * 1250).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="flex items-center">
+                  <div className="text-3xl mr-4">👥</div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Total Customers</h3>
+                    <p className="text-2xl font-bold text-blue-600">{buyers.length}</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Navigation Tabs */}
@@ -198,30 +379,101 @@ const SellerDashboard = () => {
                       </button>
                     </div>
 
-                    <div className="space-y-4">
-                      {products.map(product => (
-                        <div key={product.id} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-800">{product.title}</h3>
-                              <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                                <span>Category: {categories.find(c => c.value === product.category)?.label}</span>
-                                <span>Price: ${product.price}</span>
-                                <span>Added: {product.dateAdded}</span>
-                              </div>
-                              <div className="flex items-center gap-4 mt-2 text-sm">
-                                <span className="text-green-600">{product.downloads} downloads</span>
-                                <span className="text-green-600">${product.revenue.toLocaleString()} revenue</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button className="text-cyan-600 hover:text-cyan-800 text-sm">Edit</button>
-                              <button className="text-red-600 hover:text-red-800 text-sm">Delete</button>
-                            </div>
+                    <ErrorBoundary>
+                      <div className="space-y-4">
+                        {loading ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-700 mx-auto"></div>
+                            <p className="text-gray-600 mt-4">Loading products...</p>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ) : products.length === 0 ? (
+                          <div className="text-center py-12">
+                            <div className="text-4xl mb-4">📦</div>
+                            <h3 className="text-xl font-semibold text-gray-800 mb-2">No products yet</h3>
+                            <p className="text-gray-600 mb-4">Start by adding your first product to the marketplace</p>
+                            <button
+                              onClick={() => setActiveTab('add')}
+                              className="bg-cyan-700 text-white px-6 py-2 rounded-lg hover:bg-cyan-800 transition"
+                            >
+                              Add Your First Product
+                            </button>
+                          </div>
+                        ) : (
+                          products.map(product => {
+                            // Add safety checks to ensure all values are properly formatted
+                            const productName = product.prodName || 'Untitled Product';
+                            const categoryLabel = categories.find(c => c.value === product.Prodcategory)?.label || product.Prodcategory || 'Uncategorized';
+                            const price = typeof product.price === 'number' ? product.price.toFixed(2) : '0.00';
+                            const quantity = product.ProdQuantity || 0;
+                            const description = product.ProdDiscription || 'No description available';
+                            const createdDate = product.createdAt ? new Date(product.createdAt).toLocaleDateString() : 'Unknown';
+                            
+                            return (
+                              <div key={product._id} className="border border-gray-200 rounded-lg p-4">
+                                <div className="flex gap-4">
+                                  {/* Product Image */}
+                                  <div className="flex-shrink-0">
+                                    {product.ProdImage && product.ProdImage.length > 0 ? (
+                                      <img 
+                                        src={product.ProdImage[0]} 
+                                        alt={productName}
+                                        className="w-20 h-20 object-cover rounded-lg border"
+                                        onError={(e) => {
+                                          e.target.style.display = 'none';
+                                          e.target.nextSibling.style.display = 'flex';
+                                        }}
+                                      />
+                                    ) : null}
+                                    <div className="w-20 h-20 bg-gray-100 rounded-lg border flex items-center justify-center text-2xl" style={{display: product.ProdImage && product.ProdImage.length > 0 ? 'none' : 'flex'}}>
+                                      📦
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Product Details */}
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                      <div className="flex-1">
+                                        <h3 className="text-lg font-semibold text-gray-800">{productName}</h3>
+                                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                                          <span>Category: {categoryLabel}</span>
+                                          <span>Price: ₹{price}</span>
+                                          <span>Quantity: {quantity}</span>
+                                          <span>Added: {createdDate}</span>
+                                        </div>
+                                        <div className="mt-2 text-sm text-gray-700">
+                                          <span>{description}</span>
+                                        </div>
+                                        {product.ProdImage && product.ProdImage.length > 0 && (
+                                          <div className="mt-2">
+                                            <a 
+                                              href={product.ProdImage[0]} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer"
+                                              className="text-xs text-cyan-600 hover:text-cyan-800"
+                                            >
+                                              View Full Image
+                                            </a>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-2 ml-4">
+                                        <button className="text-cyan-600 hover:text-cyan-800 text-sm">Edit</button>
+                                        <button 
+                                          onClick={() => handleDeleteProduct(product._id)}
+                                          className="text-red-600 hover:text-red-800 text-sm"
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </ErrorBoundary>
                   </div>
                 )}
 
@@ -267,7 +519,7 @@ const SellerDashboard = () => {
                                   <div className="text-sm text-gray-900">{buyer.product}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm font-medium text-green-600">${buyer.amount}</div>
+                                  <div className="text-sm font-medium text-green-600">₹{buyer.amount}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="text-sm text-gray-900">{buyer.purchaseDate}</div>
@@ -310,7 +562,7 @@ const SellerDashboard = () => {
                         />
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-6">
+                      <div className="grid md:grid-cols-3 gap-6">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                           <select
@@ -328,7 +580,7 @@ const SellerDashboard = () => {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Price ($)</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Price (₹)</label>
                           <input
                             type="number"
                             name="price"
@@ -339,6 +591,20 @@ const SellerDashboard = () => {
                             step="0.01"
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                             placeholder="0.00"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                          <input
+                            type="number"
+                            name="quantity"
+                            value={newProduct.quantity}
+                            onChange={handleInputChange}
+                            required
+                            min="1"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                            placeholder="1"
                           />
                         </div>
                       </div>
@@ -375,12 +641,12 @@ const SellerDashboard = () => {
                                 type="file"
                                 onChange={handleFileChange}
                                 required
-                                accept=".jpg,.jpeg,.png"
+                                accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
                                 className="hidden"
                               />
                             </div>
                             <p className="text-sm text-gray-500">
-                              Upload your product image (JPG, JPEG, PNG only)
+                              Upload your product image (JPG, JPEG, PNG, GIF, WebP)
                             </p>
                             {newProduct.file && (
                               <p className="text-sm text-green-600 mt-2">
@@ -394,14 +660,16 @@ const SellerDashboard = () => {
                       <div className="flex gap-4">
                         <button
                           type="submit"
-                          className="bg-cyan-700 text-white px-6 py-2 rounded-lg hover:bg-cyan-800 transition"
+                          disabled={loading}
+                          className="bg-cyan-700 text-white px-6 py-2 rounded-lg hover:bg-cyan-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Add Product
+                          {loading ? 'Adding Product...' : 'Add Product'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setActiveTab('products')}
-                          className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition"
+                          disabled={loading}
+                          className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition disabled:opacity-50"
                         >
                           Cancel
                         </button>

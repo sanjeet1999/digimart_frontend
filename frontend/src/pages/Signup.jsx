@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -13,6 +14,16 @@ const Signup = () => {
     userType: 'buyer'
   });
 
+  const { signup, loading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -20,14 +31,45 @@ const Signup = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match!');
       return;
     }
-    // Handle signup logic here
-    console.log('Signup submitted:', formData);
+
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    // Prepare data for API (exclude confirmPassword)
+    const signupData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      userType: formData.userType,
+    };
+
+    const result = await signup(signupData);
+
+    if (result.success) {
+      // Debug: Log user data to see what we're getting after signup
+      console.log('Signup successful! User data:', result.user);
+      console.log('User Role after signup:', result.user?.UserRole);
+      
+      // Redirect based on user type
+      // Note: Backend uses UserRole field with values 'Buyer'/'Seller'
+      if (result.user?.UserRole === 'Seller') {
+        console.log('Redirecting seller to seller dashboard');
+        navigate('/sellerdashboard');
+      } else {
+        console.log('Redirecting buyer to buyer dashboard');
+        navigate('/buyerdashboard');
+      }
+    }
   };
 
   return (
@@ -140,9 +182,10 @@ const Signup = () => {
 
               <button
                 type="submit"
-                className="w-full bg-cyan-700 text-white py-2 px-4 rounded-lg hover:bg-cyan-800 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition duration-200 text-sm sm:text-base font-medium"
+                disabled={loading}
+                className="w-full bg-cyan-700 text-white py-2 px-4 rounded-lg hover:bg-cyan-800 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition duration-200 text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create Account
+                {loading ? 'Creating Account...' : 'Create Account'}
               </button>
             </form>
 

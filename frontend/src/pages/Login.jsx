@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
@@ -9,6 +10,16 @@ const Login = () => {
         password: '',
       });
     
+    const { login, loading, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    // Redirect if already authenticated
+    React.useEffect(() => {
+      if (isAuthenticated) {
+        navigate('/', { replace: true });
+      }
+    }, [isAuthenticated, navigate]);
+    
       const handleChange = (e) => {
         setFormData({
           ...formData,
@@ -16,10 +27,34 @@ const Login = () => {
         });
       };
     
-      const handleSubmit = (e) => {
+      const handleSubmit = async (e) => {
         e.preventDefault();
-        // Handle login logic here
-        console.log('Login submitted:', formData);
+        
+        if (!formData.email || !formData.password) {
+          alert('Please fill in all fields');
+          return;
+        }
+
+        const result = await login({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (result.success) {
+          // Debug: Log user data to see what we're getting
+          console.log('Login successful! User data:', result.user);
+          console.log('User Role:', result.user?.UserRole);
+          
+          // Redirect based on user type
+          // Note: Backend uses UserRole field with values 'Buyer'/'Seller'
+          if (result.user?.UserRole === 'Seller') {
+            console.log('Redirecting to seller dashboard');
+            navigate('/sellerdashboard');
+          } else {
+            console.log('Redirecting to buyer dashboard');
+            navigate('/buyerdashboard');
+          }
+        }
       };
   return (
     <div className="min-h-screen flex flex-col">
@@ -57,9 +92,10 @@ const Login = () => {
                   </div>
                   <button 
                     type="submit"
-                    className="w-full bg-cyan-700 text-white py-2 px-4 rounded-lg hover:bg-cyan-800 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition duration-200 text-sm sm:text-base font-medium"
+                    disabled={loading}
+                    className="w-full bg-cyan-700 text-white py-2 px-4 rounded-lg hover:bg-cyan-800 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition duration-200 text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Sign In
+                    {loading ? 'Signing In...' : 'Sign In'}
                   </button>
                 </form>
                 <div className="mt-4 sm:mt-6 text-center">
