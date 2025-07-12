@@ -1,6 +1,6 @@
 ## 📌 Buyer User Stories – DigiMart Platform
 
-- Buyer can sign up using email/OTP.
+- Buyer can sign up using email OTP.
 - Buyer can edit and update personal information in their profile.
 - Buyer can log in securely using verified credentials.
 - Buyer can view a list of digital products with search and filter options.
@@ -18,7 +18,7 @@
 
 ## 🛍️ Seller User Stories – Digital Goods E-commerce Platform
 
-- Seller can sign up and log in securely using email/OTP.
+- Seller can sign up and log in securely using email OTP.
 - Seller can create and manage their profile with bio, avatar, and contact details.
 - Seller can upload new digital products (eBooks, PDFs, art, videos, etc.).
 - Seller can set title, description, price, categories, and tags for each product.
