@@ -1,9 +1,8 @@
 ## 📌 Buyer User Stories – DigiMart Platform
 
-- Buyer can sign up using email/OTP or social login (Google/Apple/Facebook).
+- Buyer can sign up using email/OTP.
 - Buyer can log in securely using verified credentials.
 - Buyer can view a list of digital products with search and filter options.
-- Buyer can preview digital goods like sample pages or course trailers.
 - Buyer can add or remove multiple digital products from the cart.
 - Buyer can make payments and instantly access digital products.
 - Buyer can download purchased products immediately after payment.
@@ -18,3 +17,23 @@
 - Buyer can choose preferred download format (PDF, EPUB, MP4, etc.).
 - Buyer can view their entire order history with download access.
 - Buyer receives email confirmation and access link after each purchase.
+
+
+
+## 🛍️ Seller User Stories – Digital Goods E-commerce Platform
+
+- Seller can sign up and log in securely using email/OTP.
+- Seller can create and manage their profile with bio, avatar, and contact details.
+- Seller can upload new digital products (eBooks, PDFs, art, videos, etc.).
+- Seller can set title, description, price, categories, and tags for each product.
+- Seller can choose supported file formats and set download limits if needed.
+- Seller can preview uploaded content before publishing it live.
+- Seller can edit or delete their existing products.
+- Seller can view all their uploaded products in a dashboard.
+- Seller can view sales history with order IDs and buyer info.
+- Seller can track total earnings and download sales reports.
+- Seller receives notification/email upon a successful product sale.
+- Seller can respond to buyer reviews or feedback on their products.
+- Seller can mark products as free, discounted, or on promotion.
+- Seller can duplicate existing products to quickly create new listings.
+- Seller can see analytics for each product (views, downloads, ratings).
