@@ -192,7 +192,25 @@ Verify OTP before allowing purchase process.
 #### 1. Get All Products
 **GET** `/product/getAllProducts`
 
-Retrieve all products from the platform.
+Retrieve all products from the platform with pagination support.
+
+**Query Parameters:**
+- `page`: Page number (default: 1, min: 1)
+- `limit`: Number of items per page (default: 10, min: 1, max: 50)
+- `sort`: Sort field (default: 'createdAt')
+  - Available fields: 'createdAt', 'updatedAt', 'price', 'prodName'
+- `order`: Sort order ('asc' or 'desc', default: 'desc')
+- `category`: Filter by product category (optional)
+  - Available categories: 'software', 'ebook', 'music', 'online courses', 'digital art'
+- `search`: Search in product name and description (optional, case-insensitive)
+
+**Example Requests:**
+```
+GET /product/getAllProducts
+GET /product/getAllProducts?page=2&limit=20
+GET /product/getAllProducts?page=1&limit=10&sort=price&order=asc
+GET /product/getAllProducts?category=ebook&search=programming
+```
 
 **Response (200 OK):**
 ```json
@@ -205,7 +223,6 @@ Retrieve all products from the platform.
         "_id": "product_id",
         "prodName": "Digital Art Pack",
         "ProdDiscription": "High-quality digital art collection",
-        "ProdQuantity": 1,
         "ProdImage": ["image_url"],
         "price": 29.99,
         "sellerId": {
@@ -218,7 +235,16 @@ Retrieve all products from the platform.
         "updatedAt": "2024-01-15T10:00:00.000Z"
       }
     ],
-    "count": 1
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 5,
+      "totalItems": 50,
+      "itemsPerPage": 10,
+      "hasNextPage": true,
+      "hasPrevPage": false,
+      "nextPage": 2,
+      "prevPage": null
+    }
   }
 }
 ```
@@ -226,10 +252,26 @@ Retrieve all products from the platform.
 #### 2. Get Products by Seller
 **GET** `/product/seller/:sellerId`
 
-Retrieve all products from a specific seller.
+Retrieve all products from a specific seller with pagination support.
 
 **Parameters:**
 - `sellerId`: MongoDB ObjectId of the seller
+
+**Query Parameters:**
+- `page`: Page number (default: 1, min: 1)
+- `limit`: Number of items per page (default: 10, min: 1, max: 50)
+- `sort`: Sort field (default: 'createdAt')
+  - Available fields: 'createdAt', 'updatedAt', 'price', 'prodName'
+- `order`: Sort order ('asc' or 'desc', default: 'desc')
+- `search`: Search in product name and description (optional, case-insensitive)
+
+**Example Requests:**
+```
+GET /product/seller/507f1f77bcf86cd799439011
+GET /product/seller/507f1f77bcf86cd799439011?page=2&limit=20
+GET /product/seller/507f1f77bcf86cd799439011?sort=price&order=asc
+GET /product/seller/507f1f77bcf86cd799439011?search=digital&page=1&limit=10
+```
 
 **Response (200 OK):**
 ```json
@@ -238,7 +280,16 @@ Retrieve all products from a specific seller.
   "message": "Seller products fetched successfully",
   "data": {
     "products": [...],
-    "count": 5
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 3,
+      "totalItems": 25,
+      "itemsPerPage": 10,
+      "hasNextPage": true,
+      "hasPrevPage": false,
+      "nextPage": 2,
+      "prevPage": null
+    }
   }
 }
 ```
@@ -256,7 +307,6 @@ Add a new product to the platform.
 ```
 prodName: "My Digital Product"
 ProdDiscription: "Detailed product description"
-ProdQuantity: 1
 price: 29.99
 sellerId: "seller_mongodb_id"
 Prodcategory: "software" // Options: "software", "ebook", "music", "online courses", "digital art"
@@ -273,7 +323,6 @@ file: [uploaded image file]
       "_id": "product_id",
       "prodName": "My Digital Product",
       "ProdDiscription": "Detailed product description",
-      "ProdQuantity": 1,
       "ProdImage": ["image_url"],
       "price": 29.99,
       "sellerId": "seller_id",
@@ -283,8 +332,8 @@ file: [uploaded image file]
     },
     "imageInfo": {
       "fileName": "uploaded_file_name",
-      "directLink": "storage_url",
-      "storage": "google_drive" // or "local"
+      "directLink": "s3_url",
+      "storage": "s3_bucket"
     }
   }
 }
@@ -303,7 +352,6 @@ Update an existing product.
 {
   "prodName": "Updated Product Name",
   "ProdDiscription": "Updated description",
-  "ProdQuantity": 2,
   "price": 39.99,
   "Prodcategory": "ebook"
 }
@@ -352,8 +400,7 @@ Create a new order for products. Requires OTP verification for buyers.
   "orderItems": [
     {
       "productId": "product_id",
-      "productPrice": 29.99,
-      "productQuantity": 1
+      "productPrice": 29.99
     }
   ],
   "totalPrice": 29.99,
@@ -393,13 +440,12 @@ Retrieve order details by order ID.
   "order": {
     "_id": "order_id",
     "buyerId": "buyer_id",
-    "orderItems": [
-      {
-        "productId": "product_id",
-        "productPrice": 29.99,
-        "productQuantity": 1
-      }
-    ],
+      "orderItems": [
+    {
+      "productId": "product_id",
+      "productPrice": 29.99
+    }
+  ],
     "totalPrice": 29.99,
     "status": "Pending",
     "createdAt": "2024-01-15T10:00:00.000Z",
@@ -528,7 +574,6 @@ Process a payment transaction. Requires prior OTP verification for buyers.
 {
   prodName: String,
   ProdDiscription: String,
-  ProdQuantity: Number,
   ProdImage: [String],
   price: Number (required, min: 0),
   sellerId: ObjectId (ref: "User", required),
@@ -544,8 +589,7 @@ Process a payment transaction. Requires prior OTP verification for buyers.
   buyerId: ObjectId (ref: "User", required),
   orderItems: [{
     productId: ObjectId (ref: "Product"),
-    productPrice: Number,
-    productQuantity: Number
+    productPrice: Number
   }],
   totalPrice: Number,
   status: String (enum: ["Pending", "Rejected", "Success"], default: "Pending"),
@@ -599,13 +643,14 @@ The API uses standard HTTP status codes and returns error responses in the follo
 
 ## File Upload
 
-The API supports file uploads for product images through the `/product/addProduct` endpoint. Files are stored either locally or on Google Drive based on configuration.
+The API supports file uploads for product images through the `/product/addProduct` endpoint. Files are stored in Amazon S3 bucket for reliable and scalable cloud storage.
 
 ### Upload Requirements:
 - **Content-Type**: `multipart/form-data`
 - **File Field**: `file`
 - **Supported Formats**: Images (jpg, png, gif, etc.)
-- **Storage**: Google Drive (primary) or Local (fallback)
+- **Storage**: Amazon S3 bucket
+- **File Access**: Direct S3 URLs for image access
 
 ## Authentication Flow
 
@@ -635,6 +680,33 @@ For buyers making purchases:
 3. Use purchase token in order creation and payment processing
 4. Purchase token has limited validity (recommended: 10 minutes)
 
+## Pagination Guidelines
+
+### Best Practices:
+- **Default Limits**: Use reasonable defaults (page=1, limit=10)
+- **Maximum Limits**: Enforce maximum limit of 50 items per page
+- **Performance**: Use indexed fields for sorting ('createdAt', 'price')
+- **Consistency**: Always include pagination info in responses
+- **URL State**: Include pagination parameters in URLs for bookmarking
+
+### Error Handling:
+- **Invalid Page**: If page exceeds totalPages, return empty results
+- **Invalid Limit**: If limit exceeds max (50), use maximum allowed
+- **Invalid Sort**: If sort field doesn't exist, use default 'createdAt'
+- **Negative Values**: Convert negative page/limit values to 1
+
+### Example Error Response:
+```json
+{
+  "success": false,
+  "message": "Invalid pagination parameters",
+  "errors": {
+    "page": "Page number must be greater than 0",
+    "limit": "Limit must be between 1 and 50"
+  }
+}
+```
+
 ## Rate Limiting & Security
 
 - CORS enabled for specified origins
@@ -652,4 +724,8 @@ Required environment variables:
 - `MONGODB_URI`: MongoDB connection string
 - `FRONTEND_URL`: Frontend application URL
 - `EMAIL_SERVICE`: Email service configuration for OTP
-- Google Drive configuration (optional) 
+- AWS S3 configuration:
+  - `AWS_ACCESS_KEY_ID`: AWS access key
+  - `AWS_SECRET_ACCESS_KEY`: AWS secret key
+  - `AWS_REGION`: AWS region (e.g., us-east-1)
+  - `S3_BUCKET_NAME`: S3 bucket name for file storage 
