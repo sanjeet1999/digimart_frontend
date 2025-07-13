@@ -22,7 +22,7 @@
 - Seller can sign up using email and password (no OTP required).
 - Seller can log in securely using verified credentials.
 - Seller can create and manage their profile with bio, avatar, and contact details.
-- Seller can upload new digital products (eBooks, PDFs, art, videos, etc.).
+- Seller can upload new digital products (eBooks, PDFs, art, videos).
 - Seller can set title, description, price, categories, and tags for each product.
 - Seller can edit or delete their existing products.
 - Seller can view all their uploaded products in a dashboard.
