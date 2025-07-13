@@ -15,8 +15,9 @@ export default defineConfig(({ command, mode }) => {
     
     // Development server configuration
     server: {
-      host: true, // Expose to all network interfaces
-      port: 5174,
+      // host: true, // Expose to all network interfaces
+      host:`0.0.0.0`,
+      port: 5173,
       strictPort: true,
       cors: true,
       open: true,
