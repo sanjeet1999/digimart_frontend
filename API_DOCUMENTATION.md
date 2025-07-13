@@ -435,10 +435,55 @@ Delete a product from the platform.
 
 ### 🛒 Order Management Endpoints
 
-#### 1. Create Order
+#### 1. Create Order from Cart
+**POST** `/order/create-from-cart`
+
+Create a new order from cart items. Requires OTP verification for buyers.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "cartItemIds": ["cart_item_id1", "cart_item_id2"], // Optional: Specific cart items to order
+  "recipientEmail": "recipient@example.com", // Optional: Email for purchase recipient
+  "purchaseToken": "purchase_verification_token" // Required for buyers
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Order created successfully",
+  "data": {
+    "order": {
+      "_id": "order_id",
+      "buyerId": "buyer_id",
+      "recipientEmail": "recipient@example.com",
+      "orderItems": [
+        {
+          "productId": "product_id",
+          "productPrice": 29.99,
+          "productName": "Digital Product"
+        }
+      ],
+      "totalPrice": 29.99,
+      "status": "Pending",
+      "createdAt": "2024-01-15T10:00:00.000Z"
+    },
+    "cartUpdated": {
+      "remainingItems": 2,
+      "removedItems": ["cart_item_id1", "cart_item_id2"]
+    }
+  }
+}
+```
+
+#### 2. Create Order (Direct)
 **POST** `/order/create`
 
-Create a new order for products. Requires OTP verification for buyers.
+Create a new order for specific products. Requires OTP verification for buyers.
 
 **Headers:** `Authorization: Bearer <JWT_TOKEN>`
 
@@ -452,6 +497,7 @@ Create a new order for products. Requires OTP verification for buyers.
       "productPrice": 29.99
     }
   ],
+  "recipientEmail": "recipient@example.com", // Optional: Email for purchase recipient
   "totalPrice": 29.99,
   "status": "Pending", // Options: "Pending", "Rejected", "Success"
   "purchaseToken": "purchase_verification_token" // Required for buyers
@@ -461,8 +507,19 @@ Create a new order for products. Requires OTP verification for buyers.
 **Response (200 OK):**
 ```json
 {
-  "Status": 200,
-  "Resp": "Order Created Successfully"
+  "success": true,
+  "message": "Order created successfully",
+  "data": {
+    "order": {
+      "_id": "order_id",
+      "buyerId": "buyer_id",
+      "recipientEmail": "recipient@example.com",
+      "orderItems": [...],
+      "totalPrice": 29.99,
+      "status": "Pending",
+      "createdAt": "2024-01-15T10:00:00.000Z"
+    }
+  }
 }
 ```
 
@@ -474,7 +531,7 @@ Create a new order for products. Requires OTP verification for buyers.
 }
 ```
 
-#### 2. Get Order
+#### 3. Get Order
 **GET** `/order/get/:orderId`
 
 Retrieve order details by order ID.
@@ -489,12 +546,14 @@ Retrieve order details by order ID.
   "order": {
     "_id": "order_id",
     "buyerId": "buyer_id",
-      "orderItems": [
-    {
-      "productId": "product_id",
-      "productPrice": 29.99
-    }
-  ],
+    "recipientEmail": "recipient@example.com",
+    "orderItems": [
+      {
+        "productId": "product_id",
+        "productPrice": 29.99,
+        "productName": "Digital Product"
+      }
+    ],
     "totalPrice": 29.99,
     "status": "Pending",
     "createdAt": "2024-01-15T10:00:00.000Z",
@@ -503,7 +562,7 @@ Retrieve order details by order ID.
 }
 ```
 
-#### 3. Update Order
+#### 4. Update Order
 **PUT** `/order/update/:orderId`
 
 Update order status or details.
@@ -515,7 +574,8 @@ Update order status or details.
 ```json
 {
   "status": "Success",
-  "totalPrice": 29.99
+  "totalPrice": 29.99,
+  "recipientEmail": "new_recipient@example.com"
 }
 ```
 
@@ -523,13 +583,20 @@ Update order status or details.
 ```json
 {
   "success": true,
-  "order": {
-    // Updated order object
+  "message": "Order updated successfully",
+  "data": {
+    "order": {
+      "_id": "order_id",
+      "status": "Success",
+      "totalPrice": 29.99,
+      "recipientEmail": "new_recipient@example.com",
+      "updatedAt": "2024-01-15T10:00:00.000Z"
+    }
   }
 }
 ```
 
-#### 4. Delete Order
+#### 5. Delete Order
 **DELETE** `/order/delete/:orderId`
 
 Delete an order from the system.
@@ -578,6 +645,568 @@ Add a review for a product.
 }
 ```
 
+### 🛒 Cart Management Endpoints
+
+#### 1. Add Product to Cart
+**POST** `/cart/add`
+
+Add a product to the user's shopping cart.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "productId": "product_mongodb_id",
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Product added to cart successfully",
+  "data": {
+    "cartItem": {
+      "_id": "cart_item_id",
+      "userId": "user_id",
+      "productId": {
+        "_id": "product_id",
+        "prodName": "Digital Product",
+        "price": 29.99,
+        "thumbnail": "s3_thumbnail_url"
+      },
+      "addedAt": "2024-01-15T10:00:00.000Z"
+    },
+    "cartSummary": {
+      "totalItems": 3,
+      "subtotal": 89.97,
+      "tax": 8.99,
+      "total": 98.96
+    }
+  }
+}
+```
+
+#### 2. Get Cart Contents
+**GET** `/cart/items`
+
+Retrieve all items in the user's shopping cart.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Cart items retrieved successfully",
+  "data": {
+    "cartItems": [
+      {
+        "_id": "cart_item_id",
+        "productId": {
+          "_id": "product_id",
+          "prodName": "Digital Product",
+          "ProdDiscription": "Product description",
+          "price": 29.99,
+          "thumbnail": "s3_thumbnail_url",
+          "sellerId": {
+            "_id": "seller_id",
+            "UserName": "Seller Name"
+          }
+        },
+        "quantity": 1,
+        "addedAt": "2024-01-15T10:00:00.000Z"
+      }
+    ],
+    "cartSummary": {
+      "totalItems": 3,
+      "subtotal": 89.97,
+      "tax": 8.99,
+      "total": 98.96,
+      "itemCount": 3
+    }
+  }
+}
+```
+
+#### 3. Remove Item from Cart
+**DELETE** `/cart/remove/:itemId`
+
+Remove a specific item from the shopping cart.
+
+**Parameters:**
+- `itemId`: MongoDB ObjectId of the cart item
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Item removed from cart successfully",
+  "data": {
+    "cartSummary": {
+      "totalItems": 2,
+      "subtotal": 59.98,
+      "tax": 5.99,
+      "total": 65.97
+    }
+  }
+}
+```
+
+#### 4. Clear Entire Cart
+**DELETE** `/cart/clear`
+
+Remove all items from the shopping cart.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Cart cleared successfully",
+  "data": {
+    "cartSummary": {
+      "totalItems": 0,
+      "subtotal": 0,
+      "tax": 0,
+      "total": 0
+    }
+  }
+}
+```
+
+#### 5. Get Cart Summary
+**GET** `/cart/summary`
+
+Get a quick summary of the cart contents without full product details.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "totalItems": 3,
+    "subtotal": 89.97,
+    "tax": 8.99,
+    "total": 98.96,
+    "itemCount": 3,
+    "hasItems": true
+  }
+}
+```
+
+### 📧 Address Management Endpoints
+
+#### 1. Add Email Address
+**POST** `/address/add-email`
+
+Add a new email address to the user's address book with comprehensive tracking.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "email": "recipient@example.com",
+  "label": "Work Email", // Optional: Custom label for the email
+  "isDefault": false, // Optional: Set as default recipient
+  "description": "Office email for work purchases", // Optional: Additional description
+  "tags": ["work", "office"] // Optional: Tags for organization
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Email address added successfully",
+  "data": {
+    "address": {
+      "_id": "address_id",
+      "userId": "user_id",
+      "email": "recipient@example.com",
+      "label": "Work Email",
+      "description": "Office email for work purchases",
+      "tags": ["work", "office"],
+      "isDefault": false,
+      "isVerified": false,
+      "verificationAttempts": 0,
+      "lastVerificationSent": null,
+      "purchaseCount": 0,
+      "totalSpent": 0,
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z"
+    }
+  }
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Email address already exists in your address book"
+}
+```
+
+#### 2. Get All Email Addresses
+**GET** `/address/emails`
+
+Retrieve all email addresses in the user's address book with comprehensive tracking data.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Query Parameters:**
+- `sort`: Sort field (default: 'createdAt')
+  - Available fields: 'createdAt', 'updatedAt', 'purchaseCount', 'totalSpent', 'label'
+- `order`: Sort order ('asc' or 'desc', default: 'desc')
+- `filter`: Filter by status (optional)
+  - Options: 'verified', 'unverified', 'default'
+- `search`: Search in email, label, or description (optional)
+
+**Example Requests:**
+```
+GET /address/emails
+GET /address/emails?sort=purchaseCount&order=desc
+GET /address/emails?filter=verified&search=work
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "addresses": [
+      {
+        "_id": "address_id",
+        "email": "recipient@example.com",
+        "label": "Work Email",
+        "description": "Office email for work purchases",
+        "tags": ["work", "office"],
+        "isDefault": true,
+        "isVerified": true,
+        "verificationAttempts": 1,
+        "lastVerificationSent": "2024-01-15T10:00:00.000Z",
+        "verifiedAt": "2024-01-15T10:05:00.000Z",
+        "purchaseCount": 5,
+        "totalSpent": 149.95,
+        "lastPurchaseDate": "2024-01-14T15:30:00.000Z",
+        "createdAt": "2024-01-15T10:00:00.000Z",
+        "updatedAt": "2024-01-15T10:05:00.000Z"
+      }
+    ],
+    "summary": {
+      "totalAddresses": 3,
+      "verifiedAddresses": 2,
+      "unverifiedAddresses": 1,
+      "defaultAddress": {
+        "_id": "address_id",
+        "email": "recipient@example.com",
+        "label": "Work Email"
+      },
+      "totalPurchases": 8,
+      "totalSpent": 239.92
+    }
+  }
+}
+```
+
+#### 3. Update Email Address
+**PUT** `/address/update/:addressId`
+
+Update an existing email address details while preserving tracking data.
+
+**Parameters:**
+- `addressId`: MongoDB ObjectId of the address
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "email": "updated@example.com",
+  "label": "Updated Label",
+  "description": "Updated description",
+  "tags": ["updated", "tag"],
+  "isDefault": true
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Email address updated successfully",
+  "data": {
+    "address": {
+      "_id": "address_id",
+      "email": "updated@example.com",
+      "label": "Updated Label",
+      "description": "Updated description",
+      "tags": ["updated", "tag"],
+      "isDefault": true,
+      "isVerified": false,
+      "verificationAttempts": 0,
+      "purchaseCount": 0,
+      "totalSpent": 0,
+      "updatedAt": "2024-01-15T10:00:00.000Z"
+    }
+  }
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Email address already exists in your address book"
+}
+```
+
+#### 4. Delete Email Address
+**DELETE** `/address/delete/:addressId`
+
+Remove an email address from the address book.
+
+**Parameters:**
+- `addressId`: MongoDB ObjectId of the address
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Email address deleted successfully"
+}
+```
+
+#### 5. Set Default Email Address
+**PUT** `/address/set-default/:addressId`
+
+Set an email address as the default recipient.
+
+**Parameters:**
+- `addressId`: MongoDB ObjectId of the address
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Default email address updated successfully",
+  "data": {
+    "defaultAddress": {
+      "_id": "address_id",
+      "email": "default@example.com",
+      "label": "Default Email"
+    }
+  }
+}
+```
+
+#### 6. Verify Email Address
+**POST** `/address/verify-email`
+
+Send OTP to verify an email address in the address book.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "addressId": "address_mongodb_id"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "OTP sent to email address for verification"
+}
+```
+
+#### 7. Confirm Email Verification
+**POST** `/address/confirm-verification`
+
+Confirm email verification with OTP and update tracking data.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "addressId": "address_mongodb_id",
+  "otp": "123456"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Email address verified successfully",
+  "data": {
+    "address": {
+      "_id": "address_id",
+      "email": "verified@example.com",
+      "isVerified": true,
+      "verificationAttempts": 1,
+      "verifiedAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z"
+    }
+  }
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Invalid or expired OTP"
+}
+```
+
+#### 8. Get Address Analytics
+**GET** `/address/analytics`
+
+Get comprehensive analytics for all addresses in the user's address book.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "overview": {
+      "totalAddresses": 5,
+      "verifiedAddresses": 3,
+      "unverifiedAddresses": 2,
+      "defaultAddress": {
+        "_id": "address_id",
+        "email": "default@example.com",
+        "label": "Default Email"
+      }
+    },
+    "purchaseStats": {
+      "totalPurchases": 15,
+      "totalSpent": 449.85,
+      "averageOrderValue": 29.99,
+      "mostUsedAddress": {
+        "_id": "address_id",
+        "email": "work@example.com",
+        "purchaseCount": 8,
+        "totalSpent": 239.92
+      }
+    },
+    "recentActivity": {
+      "lastAddedAddress": "2024-01-15T10:00:00.000Z",
+      "lastVerifiedAddress": "2024-01-14T15:30:00.000Z",
+      "lastPurchaseDate": "2024-01-14T15:30:00.000Z"
+    },
+    "addressBreakdown": [
+      {
+        "email": "work@example.com",
+        "purchaseCount": 8,
+        "totalSpent": 239.92,
+        "lastPurchase": "2024-01-14T15:30:00.000Z",
+        "isVerified": true
+      }
+    ]
+  }
+}
+```
+
+#### 9. Get Address by ID
+**GET** `/address/:addressId`
+
+Get detailed information about a specific address.
+
+**Parameters:**
+- `addressId`: MongoDB ObjectId of the address
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "address": {
+      "_id": "address_id",
+      "userId": "user_id",
+      "email": "recipient@example.com",
+      "label": "Work Email",
+      "description": "Office email for work purchases",
+      "tags": ["work", "office"],
+      "isDefault": true,
+      "isVerified": true,
+      "verificationAttempts": 1,
+      "lastVerificationSent": "2024-01-15T10:00:00.000Z",
+      "verifiedAt": "2024-01-15T10:05:00.000Z",
+      "purchaseCount": 5,
+      "totalSpent": 149.95,
+      "lastPurchaseDate": "2024-01-14T15:30:00.000Z",
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:05:00.000Z"
+    },
+    "purchaseHistory": [
+      {
+        "orderId": "order_id",
+        "productName": "Digital Product",
+        "amount": 29.99,
+        "purchaseDate": "2024-01-14T15:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+#### 10. Bulk Address Operations
+**POST** `/address/bulk-operations`
+
+Perform bulk operations on multiple addresses.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "operation": "delete", // Options: "delete", "verify", "setDefault"
+  "addressIds": ["address_id1", "address_id2"]
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Bulk operation completed successfully",
+  "data": {
+    "operation": "delete",
+    "processedCount": 2,
+    "successCount": 2,
+    "failedCount": 0,
+    "results": [
+      {
+        "addressId": "address_id1",
+        "status": "success",
+        "message": "Address deleted successfully"
+      }
+    ]
+  }
+}
+```
+
 ### 💳 Transaction Management Endpoints
 
 #### 1. Process Payment
@@ -604,79 +1233,7 @@ Process a payment transaction. Requires prior OTP verification for buyers.
 }
 ```
 
-## Data Models
 
-### User Model
-```javascript
-{
-  UserName: String (required),
-  UserRole: String (enum: ["Buyer", "Seller"], default: "Seller"),
-  UserEmail: String (required, unique, lowercase),
-  UserPassword: String (required, min: 6 chars),
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### Product Model
-```javascript
-{
-  prodName: String (required),
-  ProdDiscription: String (required),
-  ProdImage: [String], // Array of S3 URLs for product files
-  thumbnail: String, // S3 URL for product thumbnail image
-  price: Number (required, min: 0),
-  sellerId: ObjectId (ref: "User", required),
-  Prodcategory: String (enum: ["software", "ebook", "music", "online courses", "digital art"], required),
-  fileSize: String, // Human-readable file size (e.g., "2.5MB")
-  downloadCount: Number (default: 0), // Number of times product was downloaded
-  s3Info: {
-    productFileKey: String, // S3 key for the main product file
-    thumbnailKey: String, // S3 key for thumbnail image
-    bucketName: String // S3 bucket name
-  },
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### Order Model
-```javascript
-{
-  buyerId: ObjectId (ref: "User", required),
-  orderItems: [{
-    productId: ObjectId (ref: "Product"),
-    productPrice: Number
-  }],
-  totalPrice: Number,
-  status: String (enum: ["Pending", "Rejected", "Success"], default: "Pending"),
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### Review Model
-```javascript
-{
-  productId: ObjectId (ref: "Product"),
-  BuyerId: ObjectId (ref: "User"),
-  Rating: Number (enum: [1, 2, 3, 4, 5], default: 1),
-  comments: String (max: 100 chars),
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### Transaction Model
-```javascript
-{
-  orderId: ObjectId (ref: "Order"),
-  payMethod: String (enum: ["Paypal", "UPI"], default: "Paypal"),
-  status: String (enum: ["Pending", "Failed", "Success"], default: "Pending"),
-  createdAt: Date,
-  updatedAt: Date
-}
-```
 
 ## Error Handling
 
