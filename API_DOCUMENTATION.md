@@ -297,11 +297,11 @@ GET /product/seller/507f1f77bcf86cd799439011?search=digital&page=1&limit=10
 #### 3. Add Product (Sellers Only)
 **POST** `/product/addProduct`
 
-Add a new product to the platform.
+Add a new product to the platform with S3 file upload support.
 
 **Headers:** 
+- `Authorization: Bearer <JWT_TOKEN>` (Required for seller authentication)
 - `Content-Type: multipart/form-data`
-- File upload required
 
 **Request Body (form-data):**
 ```
@@ -309,9 +309,24 @@ prodName: "My Digital Product"
 ProdDiscription: "Detailed product description"
 price: 29.99
 sellerId: "seller_mongodb_id"
-Prodcategory: "software" // Options: "software", "ebook", "music", "online courses", "digital art"
-file: [uploaded image file]
+Prodcategory: "software" // Options: "ebook", "music", "online courses", "digital art"
+file: [uploaded product file] // Required: Product file (PDF, ZIP, MP3)
+thumbnail: [uploaded thumbnail image] // Optional: Product thumbnail image
 ```
+
+**File Upload Requirements:**
+- **Product File**: Required, supports various digital formats
+  - E-books: `.pdf`, `.epub`, `.mobi`
+  - Music: `.mp3`, `.wav`, `.flac`, `.aac`
+  - Courses: `.zip`, `.mp4`, `.mov`
+  - Digital Art: `.psd`, `.ai`, `.svg`, `.png`, `.jpg`
+- **Thumbnail Image**: Optional, for product preview
+  - Formats: `.jpg`, `.jpeg`, `.png`, `.webp`
+  - Max size: 5MB
+  - Recommended: 800x600px or 16:9 aspect ratio
+- **File Size Limits**: 
+  - Product files: Max 100MB
+  - Thumbnail: Max 5MB
 
 **Response (201 Created):**
 ```json
@@ -323,19 +338,53 @@ file: [uploaded image file]
       "_id": "product_id",
       "prodName": "My Digital Product",
       "ProdDiscription": "Detailed product description",
-      "ProdImage": ["image_url"],
+      "ProdImage": ["s3_product_file_url"],
+      "thumbnail": "s3_thumbnail_url",
       "price": 29.99,
       "sellerId": "seller_id",
-      "Prodcategory": "software",
+      "Prodcategory": "ebook",
+      "fileSize": "2.5MB",
+      "downloadCount": 0,
       "createdAt": "2024-01-15T10:00:00.000Z",
       "updatedAt": "2024-01-15T10:00:00.000Z"
     },
-    "imageInfo": {
-      "fileName": "uploaded_file_name",
-      "directLink": "s3_url",
-      "storage": "s3_bucket"
+    "uploadInfo": {
+      "productFile": {
+        "fileName": "my_software_v1.0.zip",
+        "s3Key": "products/seller_id/product_id/my_software_v1.0.zip",
+        "s3Url": "https://your-bucket.s3.amazonaws.com/products/seller_id/product_id/my_software_v1.0.zip",
+        "fileSize": "2.5MB",
+        "contentType": "application/zip"
+      },
+      "thumbnail": {
+        "fileName": "thumbnail.jpg",
+        "s3Key": "thumbnails/seller_id/product_id/thumbnail.jpg",
+        "s3Url": "https://your-bucket.s3.amazonaws.com/thumbnails/seller_id/product_id/thumbnail.jpg",
+        "fileSize": "150KB",
+        "contentType": "image/jpeg"
+      }
     }
   }
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "File upload failed",
+  "errors": {
+    "file": "Invalid file format. Supported formats: zip, pdf, mp3, etc.",
+    "size": "File size exceeds maximum limit of 100MB"
+  }
+}
+```
+
+**Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "message": "Authentication required. Please login as a seller."
 }
 ```
 
@@ -572,12 +621,20 @@ Process a payment transaction. Requires prior OTP verification for buyers.
 ### Product Model
 ```javascript
 {
-  prodName: String,
-  ProdDiscription: String,
-  ProdImage: [String],
+  prodName: String (required),
+  ProdDiscription: String (required),
+  ProdImage: [String], // Array of S3 URLs for product files
+  thumbnail: String, // S3 URL for product thumbnail image
   price: Number (required, min: 0),
   sellerId: ObjectId (ref: "User", required),
-  Prodcategory: String (enum: ["software", "ebook", "music", "online courses", "digital art"]),
+  Prodcategory: String (enum: ["software", "ebook", "music", "online courses", "digital art"], required),
+  fileSize: String, // Human-readable file size (e.g., "2.5MB")
+  downloadCount: Number (default: 0), // Number of times product was downloaded
+  s3Info: {
+    productFileKey: String, // S3 key for the main product file
+    thumbnailKey: String, // S3 key for thumbnail image
+    bucketName: String // S3 bucket name
+  },
   createdAt: Date,
   updatedAt: Date
 }
@@ -641,16 +698,78 @@ The API uses standard HTTP status codes and returns error responses in the follo
 - `404 Not Found`: Resource not found
 - `500 Internal Server Error`: Server error
 
-## File Upload
+## File Upload & S3 Integration
 
-The API supports file uploads for product images through the `/product/addProduct` endpoint. Files are stored in Amazon S3 bucket for reliable and scalable cloud storage.
+The API supports comprehensive file upload functionality for digital products through the `/product/addProduct` endpoint. All files are securely stored in Amazon S3 for reliable, scalable, and fast cloud storage.
+
+### S3 Storage Structure:
+```
+your-s3-bucket/
+├── products/
+│   └── {seller_id}/
+│       └── {product_id}/
+│           └── {product_file}
+├── thumbnails/
+    └── {seller_id}/
+        └── {product_id}/
+            └── {thumbnail_image}
+
+```
 
 ### Upload Requirements:
 - **Content-Type**: `multipart/form-data`
-- **File Field**: `file`
-- **Supported Formats**: Images (jpg, png, gif, etc.)
-- **Storage**: Amazon S3 bucket
-- **File Access**: Direct S3 URLs for image access
+- **Authentication**: JWT Bearer token required for sellers
+- **File Fields**: 
+  - `file`: Main product file (required)
+  - `thumbnail`: Product preview image (optional)
+- **Storage**: Amazon S3 bucket with organized folder structure
+- **File Access**: Direct S3 URLs with proper access controls
+
+### Supported File Formats by Category:
+
+#### E-books & Documents:
+- **E-books**: `.pdf`, `.epub`, `.mobi`, `.azw3`
+- **Documents**: `.docx`, `.txt`, `.rtf`
+- **Presentations**: `.pptx`, `.key`
+
+#### Audio & Music:
+- **Audio**: `.mp3`, `.wav`, `.flac`, `.aac`, `.ogg`
+- **High Quality**: `.m4a`, `.wma`, `.opus`
+
+#### Video & Courses:
+- **Video**: `.mp4`, `.mov`, `.avi`, `.mkv`, `.wmv`
+- **Web**: `.webm`, `.flv`
+- **Archives**: `.zip` (for course materials)
+
+#### Digital Art & Graphics:
+- **Raster**: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.tiff`
+- **Vector**: `.svg`, `.ai`, `.eps`, `.pdf`
+- **Design**: `.psd`, `.xcf`, `.sketch`
+
+### File Size Limits:
+- **Product Files**: Maximum 100MB per file
+- **Thumbnail Images**: Maximum 5MB per image
+- **Total Upload**: Maximum 200MB per product
+
+### S3 Security Features:
+- **Access Control**: Files are private by default
+- **Signed URLs**: Temporary access URLs for downloads
+- **CORS Configuration**: Properly configured for web access
+- **Encryption**: Server-side encryption enabled
+- **Versioning**: File versioning for backup and recovery
+
+### Upload Process:
+1. **Validation**: File format and size validation
+2. **Processing**: File optimization and thumbnail generation
+3. **Upload**: Secure upload to S3 with proper metadata
+4. **Database**: S3 URLs and metadata saved to MongoDB
+5. **Response**: Complete product data with S3 information
+
+### Error Handling:
+- **Invalid Format**: Returns specific format requirements
+- **Size Exceeded**: Clear size limit information
+- **Upload Failed**: Retry mechanism with progress tracking
+- **S3 Errors**: Graceful fallback and error reporting
 
 ## Authentication Flow
 
@@ -724,8 +843,47 @@ Required environment variables:
 - `MONGODB_URI`: MongoDB connection string
 - `FRONTEND_URL`: Frontend application URL
 - `EMAIL_SERVICE`: Email service configuration for OTP
-- AWS S3 configuration:
-  - `AWS_ACCESS_KEY_ID`: AWS access key
-  - `AWS_SECRET_ACCESS_KEY`: AWS secret key
-  - `AWS_REGION`: AWS region (e.g., us-east-1)
-  - `S3_BUCKET_NAME`: S3 bucket name for file storage 
+
+### AWS S3 Configuration:
+```bash
+# AWS Credentials
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=us-east-1
+
+# S3 Bucket Configuration
+S3_BUCKET_NAME=your-digimart-bucket
+S3_BUCKET_REGION=us-east-1
+
+# Optional S3 Settings
+S3_ENCRYPTION=true
+S3_VERSIONING=true
+S3_CORS_ENABLED=true
+S3_MAX_FILE_SIZE=104857600  # 100MB in bytes
+S3_THUMBNAIL_MAX_SIZE=5242880  # 5MB in bytes
+
+# CDN Configuration (optional)
+CLOUDFRONT_DISTRIBUTION_ID=your_cloudfront_distribution_id
+CLOUDFRONT_DOMAIN=your_cloudfront_domain.cloudfront.net
+```
+
+### S3 Bucket Setup Requirements:
+1. **Bucket Creation**: Create a dedicated S3 bucket for DigiMart
+2. **CORS Configuration**: Enable CORS for web uploads
+3. **Bucket Policy**: Configure proper access policies
+4. **Versioning**: Enable versioning for file recovery
+5. **Encryption**: Enable server-side encryption
+6. **Lifecycle Rules**: Configure automatic cleanup of temporary files
+
+### Example S3 CORS Configuration:
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "POST", "PUT", "DELETE"],
+    "AllowedOrigins": ["http://localhost:3000", "https://yourdomain.com"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+``` 
