@@ -23,7 +23,7 @@ Authorization: Bearer <JWT_TOKEN>
 #### 1. User Signup
 **POST** `/auth/signup`
 
-Register a new user (buyer or seller) on the platform.
+Register a new user (buyer or seller) on the platform using email and password.
 
 **Request Body:**
 ```json
@@ -126,6 +126,64 @@ Update user profile information.
       "updatedAt": "2024-01-15T12:00:00.000Z"
     }
   }
+}
+```
+
+### 📧 OTP Verification Endpoints (Purchase Process)
+
+#### 1. Send OTP for Purchase
+**POST** `/auth/send-purchase-otp`
+
+Send OTP to user's email before allowing purchase.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "userEmail": "john@example.com"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully to your email"
+}
+```
+
+#### 2. Verify OTP for Purchase
+**POST** `/auth/verify-purchase-otp`
+
+Verify OTP before allowing purchase process.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Request Body:**
+```json
+{
+  "userEmail": "john@example.com",
+  "otp": "123456"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully",
+  "data": {
+    "purchaseToken": "purchase_verification_token"
+  }
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Invalid or expired OTP"
 }
 ```
 
@@ -283,7 +341,9 @@ Delete a product from the platform.
 #### 1. Create Order
 **POST** `/order/create`
 
-Create a new order for products.
+Create a new order for products. Requires OTP verification for buyers.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
 
 **Request Body:**
 ```json
@@ -297,7 +357,8 @@ Create a new order for products.
     }
   ],
   "totalPrice": 29.99,
-  "status": "Pending" // Options: "Pending", "Rejected", "Success"
+  "status": "Pending", // Options: "Pending", "Rejected", "Success"
+  "purchaseToken": "purchase_verification_token" // Required for buyers
 }
 ```
 
@@ -306,6 +367,14 @@ Create a new order for products.
 {
   "Status": 200,
   "Resp": "Order Created Successfully"
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Purchase verification required. Please verify OTP first."
 }
 ```
 
@@ -419,14 +488,17 @@ Add a review for a product.
 #### 1. Process Payment
 **POST** `/transections/payment`
 
-Process a payment transaction.
+Process a payment transaction. Requires prior OTP verification for buyers.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
 
 **Request Body:**
 ```json
 {
   "orderId": "order_mongodb_id",
   "payMethod": "Paypal", // Options: "Paypal", "UPI"
-  "status": "Success" // Options: "Pending", "Failed", "Success"
+  "status": "Success", // Options: "Pending", "Failed", "Success"
+  "purchaseToken": "purchase_verification_token" // Required for buyers
 }
 ```
 
@@ -537,22 +609,38 @@ The API supports file uploads for product images through the `/product/addProduc
 
 ## Authentication Flow
 
-1. **Register**: Use `/auth/signup` to create a new account
+1. **Register**: Use `/auth/signup` to create a new account with email and password
 2. **Login**: Use `/auth/login` to get a JWT token
-3. **Access Protected Routes**: Include the token in the Authorization header
-4. **Logout**: Use `/auth/logout` to end the session
+3. **Browse Products**: Access product endpoints with JWT token
+4. **Purchase Process**: 
+   - Send OTP using `/auth/send-purchase-otp`
+   - Verify OTP using `/auth/verify-purchase-otp` to receive purchase token
+   - Create order with purchase token
+   - Process payment with purchase token
+5. **Logout**: Use `/auth/logout` to end the session
 
 ## Role-Based Access
 
-- **Buyers**: Can view products, create orders, add reviews
-- **Sellers**: Can manage products, view orders for their products
+- **Buyers**: Can view products, create orders (with OTP verification), add reviews
+- **Sellers**: Can manage products, view orders for their products (no OTP required)
 - **Both**: Can update their profile, view their own data
+
+## Purchase Verification Process
+
+For buyers making purchases:
+1. User must be logged in with valid JWT token
+2. Before creating an order, user must:
+   - Request OTP via `/auth/send-purchase-otp`
+   - Verify OTP via `/auth/verify-purchase-otp` to receive purchase token
+3. Use purchase token in order creation and payment processing
+4. Purchase token has limited validity (recommended: 10 minutes)
 
 ## Rate Limiting & Security
 
 - CORS enabled for specified origins
 - JWT tokens for authentication
 - Password hashing with bcrypt
+- OTP verification for purchase security
 - Request logging with Pino
 - Static file serving for uploads
 
@@ -563,4 +651,5 @@ Required environment variables:
 - `JWT_SECRET`: Secret key for JWT tokens
 - `MONGODB_URI`: MongoDB connection string
 - `FRONTEND_URL`: Frontend application URL
+- `EMAIL_SERVICE`: Email service configuration for OTP
 - Google Drive configuration (optional) 
