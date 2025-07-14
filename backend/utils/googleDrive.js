@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+                                                                                                                    import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
 import logger from './logger.js';
@@ -15,7 +15,7 @@ class GoogleDriveService {
     this.initialize();
   }
 
-  /**
+  /**                                                                                                                                                                     
    * Initialize or re-initialize the service with current environment variables
    */
   initialize() {

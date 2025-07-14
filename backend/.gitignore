@@ -1,0 +1,4 @@
+*.log
+.env
+node_modules 
+google_Aps.txt

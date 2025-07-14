@@ -15,15 +15,16 @@ export default defineConfig(({ command, mode }) => {
     
     // Development server configuration
     server: {
-      host: true, // Expose to all network interfaces
-      port: 5174,
+      // host: true, // Expose to all network interfaces
+      host:`0.0.0.0`,
+      port: 5173,
       strictPort: true,
       cors: true,
       open: true,
       // Proxy configuration if needed
       proxy: {
         '/api': {
-          target: env.VITE_API_BASE_URL || 'http://localhost:5002',
+          target: env.VITE_API_BASE_URL || 'http://localhost:5000',
           changeOrigin: true,
           secure: false,
         },

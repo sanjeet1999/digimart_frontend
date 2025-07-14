@@ -12,8 +12,8 @@ import pinoHttp from "pino-http";
 const app = express();
 import dotenv from "dotenv";
 dotenv.config();
-// console.log("dekjo",process.env.PORT)
-const PORT = process.env.PORT;
+console.log("PORT check",process.env.PORT)
+const PORT = process.env.PORT || 5000;
 app.use(express.json())
 
 // Serve static files from uploads directory
