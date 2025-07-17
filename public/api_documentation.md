@@ -96,38 +96,7 @@ Log out the current user (token invalidation handled client-side).
 }
 ```
 
-#### 4. Update User Profile
-**PUT** `/auth/user/update`
 
-Update user profile information.
-
-**Headers:** `Authorization: Bearer <JWT_TOKEN>`
-
-**Request Body:**
-```json
-{
-  "UserName": "Updated Name",
-  "UserEmail": "updated@example.com"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "message": "User updated successfully",
-  "data": {
-    "user": {
-      "_id": "user_id",
-      "UserName": "Updated Name",
-      "UserEmail": "updated@example.com",
-      "UserRole": "Buyer",
-      "createdAt": "2024-01-15T10:00:00.000Z",
-      "updatedAt": "2024-01-15T12:00:00.000Z"
-    }
-  }
-}
-```
 
 ### 📧 OTP Verification Endpoints (Purchase Process)
 
