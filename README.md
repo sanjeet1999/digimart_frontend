@@ -96,7 +96,6 @@ DigiMart is a full-stack digital marketplace platform that enables users to buy 
 
 #### Business Tools
 - Respond to buyer reviews and feedback
-- Mark products as free, discounted, or promotional
 - Sales notifications and email alerts
 - Product download tracking
 
